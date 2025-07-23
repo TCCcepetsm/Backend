@@ -45,30 +45,26 @@ public class AuthController {
 
 	@PostMapping("/authenticate")
 	public ResponseEntity<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
-		// 1. Autenticação básica (email/senha)
-		authenticationManager
-				.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getSenha()));
+		authenticationManager.authenticate(
+				new UsernamePasswordAuthenticationToken(request.getEmail(), request.getSenha()));
 
-		// 2. Busca o usuário com suas roles
 		Usuario usuario = usuarioRepository.findByEmail(request.getEmail())
 				.orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
 
-		// 3. Mapeamento das roles para autoridades (garantindo o prefixo ROLE_)
 		List<GrantedAuthority> authorities = usuario.getRoles().stream()
-				.map(role -> new SimpleGrantedAuthority(
-						role.getDescricao().startsWith("ROLE_") ? role.getDescricao() : "ROLE_" + role.getDescricao()))
+				.map(role -> new SimpleGrantedAuthority(role.name()))
 				.collect(Collectors.toList());
 
-		// 4. Geração do token JWT
 		String jwtToken = jwtService.generateToken(new User(usuario.getEmail(), usuario.getSenha(), authorities));
 
-		// 5. Preparação da resposta
-		return ResponseEntity.ok(AuthenticationResponse.builder().token(jwtToken).email(usuario.getEmail())
-				.nome(usuario.getNome()).roles(
-						// Opção 1: Manter ROLE_ na resposta
-						authorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList())
-
-				).build());
+		// --- PREPARAÇÃO DA RESPOSTA CORRIGIDA ---
+		return ResponseEntity.ok(AuthenticationResponse.builder()
+				.id(usuario.getIdUsuario()) // <<-- ADICIONE O ID AQUI
+				.token(jwtToken)
+				.email(usuario.getEmail())
+				.nome(usuario.getNome())
+				.roles(authorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList()))
+				.build());
 	}
 
 	@PostMapping("/logout")
