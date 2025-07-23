@@ -65,9 +65,10 @@ public class SecurityConfig {
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration config = new CorsConfiguration();
 		config.setAllowedOrigins(List.of("https://meu-frontend-tcc.onrender.com"));
-		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 		config.setAllowedHeaders(List.of("*"));
-		config.setExposedHeaders(List.of("Location")); // Importante para 201 Created
+		config.setExposedHeaders(List.of("Location"));
+		config.setAllowCredentials(true); // This is the critical line
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", config);
 		return source;
