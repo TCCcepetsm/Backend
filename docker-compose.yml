@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: recorder-postgres
+    environment:
+      POSTGRES_DB: db-gravAcao
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - recorder-network
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: recorder-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/db-gravAcao
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_BUCKET: ${SUPABASE_BUCKET}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - recorder-network
+
+volumes:
+  postgres_data:
+
+networks:
+  recorder-network:
+    driver: bridge
+
