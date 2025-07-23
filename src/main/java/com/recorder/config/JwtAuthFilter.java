@@ -45,7 +45,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 			throws ServletException, IOException {
 
 		// Configura headers CORS
-		response.setHeader("Access-Control-Allow-Origin", "https://meu-frontend-tcc.onrender.com");
+		config.setAllowedOrigins(List.of("https://meu-frontend-tcc.onrender.com", "*"));
+
 		response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
 		response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
 		response.setHeader("Access-Control-Allow-Credentials", "true");
@@ -59,7 +60,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 	}
 
 	private void configureCorsHeaders(HttpServletResponse response) {
-		response.setHeader("Access-Control-Allow-Origin", "https://meu-frontend-tcc.onrender.com");
+		config.setAllowedOrigins(List.of("https://meu-frontend-tcc.onrender.com", "*"));
 		response.setHeader("Access-Control-Allow-Credentials", "true");
 		response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
 		response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
