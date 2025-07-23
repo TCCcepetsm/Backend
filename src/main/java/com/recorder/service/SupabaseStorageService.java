@@ -18,9 +18,8 @@ public class SupabaseStorageService {
     @Value("${supabase.url}")
     private String supabaseUrl;
 
-@Value("${SUPABASE_SERVICE_ROLE_KEY}")
-private String supabaseKey;
-
+    @Value("${supabase.service.role.key}")
+    private String supabaseKey;
 
     @Value("${supabase.bucket}")
     private String bucketName;
@@ -32,7 +31,7 @@ private String supabaseKey;
     public String uploadFile(MultipartFile file, String folder) throws IOException, InterruptedException {
         // Gerar nome único para o arquivo
         String fileName = folder + "/" + UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-        
+
         // URL da API do Supabase Storage
         String uploadUrl = supabaseUrl + "/storage/v1/object/" + bucketName + "/" + fileName;
 
@@ -58,7 +57,7 @@ private String supabaseKey;
     public void deleteFile(String fileUrl) throws IOException, InterruptedException {
         // Extrair o caminho do arquivo da URL
         String filePath = fileUrl.replace(supabaseUrl + "/storage/v1/object/public/" + bucketName + "/", "");
-        
+
         // URL da API do Supabase Storage para deletar
         String deleteUrl = supabaseUrl + "/storage/v1/object/" + bucketName + "/" + filePath;
 
@@ -77,4 +76,3 @@ private String supabaseKey;
         }
     }
 }
-
