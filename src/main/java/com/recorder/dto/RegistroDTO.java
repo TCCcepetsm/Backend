@@ -3,9 +3,7 @@ package com.recorder.dto;
 import jakarta.validation.constraints.*;
 
 public class RegistroDTO {
-
     @NotBlank(message = "Nome é obrigatório")
-    @Size(min = 3, max = 100, message = "Nome deve ter entre 3 e 100 caracteres")
     private String nome;
 
     @NotBlank(message = "Email é obrigatório")
@@ -13,11 +11,10 @@ public class RegistroDTO {
     private String email;
 
     @NotBlank(message = "Telefone é obrigatório")
-    @Pattern(regexp = "^[0-9]{10,15}$", message = "Telefone deve conter apenas números e ter entre 10 e 15 dígitos")
     private String telefone;
 
     @NotBlank(message = "Senha é obrigatória")
-    @Size(min = 6, max = 20, message = "Senha deve ter entre 6 e 20 caracteres")
+    @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
     private String senha;
 
     @NotBlank(message = "Confirmação de senha é obrigatória")
@@ -29,7 +26,6 @@ public class RegistroDTO {
     @NotBlank(message = "Tipo de usuário é obrigatório")
     private String tipo;
 
-    // Campos condicionais para PJ/PF
     private String cpf;
     private String cnpj;
 

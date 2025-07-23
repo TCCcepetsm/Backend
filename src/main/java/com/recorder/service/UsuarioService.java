@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.recorder.dto.RegistroDTO;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -28,28 +28,27 @@ public class UsuarioService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public Usuario registrar(UsuarioDTO usuarioDTO) {
+    public Usuario registrar(RegistroDTO registroDTO) {
         // Verificar se email já existe
-        if (usuarioRepository.findByEmail(usuarioDTO.getEmail()).isPresent()) {
+        if (usuarioRepository.findByEmail(registroDTO.getEmail()).isPresent()) {
             throw new RuntimeException("Email já cadastrado");
         }
 
+        // Criar novo usuário
         Usuario usuario = new Usuario();
-        usuario.setNome(usuarioDTO.getNome());
-        usuario.setEmail(usuarioDTO.getEmail());
-        usuario.setTelefone(usuarioDTO.getTelefone());
-        usuario.setSenha(passwordEncoder.encode(usuarioDTO.getSenha()));
+        usuario.setNome(registroDTO.getNome());
+        usuario.setEmail(registroDTO.getEmail());
+        usuario.setTelefone(registroDTO.getTelefone());
+        usuario.setSenha(passwordEncoder.encode(registroDTO.getSenha()));
 
-        // Definir roles baseadas no tipo
-        Set<Roles> roles = new HashSet<>();
-        if ("PF".equalsIgnoreCase(usuarioDTO.getTipo())) {
-            usuario.setCpf(usuarioDTO.getCpf());
-            roles.add(Roles.ROLE_USUARIO);
-        } else if ("PJ".equalsIgnoreCase(usuarioDTO.getTipo())) {
-            usuario.setCnpj(usuarioDTO.getCnpj());
-            roles.add(Roles.ROLE_PROFISSIONAL);
+        // Definir tipo e documento
+        if ("PF".equalsIgnoreCase(registroDTO.getTipo())) {
+            usuario.setCpf(registroDTO.getCpf());
+            usuario.setRoles(Set.of(Roles.ROLE_USUARIO));
+        } else if ("PJ".equalsIgnoreCase(registroDTO.getTipo())) {
+            usuario.setCnpj(registroDTO.getCnpj());
+            usuario.setRoles(Set.of(Roles.ROLE_PROFISSIONAL));
         }
-        usuario.setRoles(roles);
 
         return usuarioRepository.save(usuario);
     }

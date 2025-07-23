@@ -64,16 +64,10 @@ public class SecurityConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration config = new CorsConfiguration();
-		config.setAllowedOrigins(List.of(
-				"https://meu-frontend-tcc.onrender.com",
-				"http://localhost:3000" // para desenvolvimento local
-		));
-		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
-		config.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
-		config.setExposedHeaders(List.of("Authorization"));
-		config.setAllowCredentials(true);
-		config.setMaxAge(3600L);
-
+		config.setAllowedOrigins(List.of("https://meu-frontend-tcc.onrender.com"));
+		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+		config.setAllowedHeaders(List.of("*"));
+		config.setExposedHeaders(List.of("Location")); // Importante para 201 Created
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", config);
 		return source;

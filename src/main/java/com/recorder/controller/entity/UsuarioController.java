@@ -23,14 +23,11 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.HashSet;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api/usuario")
 public class UsuarioController {
-	private static final Logger logger = LoggerFactory.getLogger(UsuarioController.class);
-
-	@Autowired
-	private PasswordEncoder passwordEncoder;
 
 	private final UsuarioService usuarioService;
 
@@ -50,43 +47,33 @@ public class UsuarioController {
 				return ResponseEntity.badRequest().body(errors);
 			}
 
-			// Converter RegistroDTO para UsuarioDTO
-			UsuarioDTO usuarioDTO = convertToUsuarioDTO(registroDTO);
+			// Verificação adicional de senhas
+			if (!registroDTO.getSenha().equals(registroDTO.getConfirmarSenha())) {
+				return ResponseEntity.badRequest().body(
+						Collections.singletonMap("error", "As senhas não coincidem"));
+			}
 
-			// Processar registro
-			Usuario usuarioSalvo = usuarioService.registrar(usuarioDTO);
+			// Registrar usuário
+			Usuario usuarioSalvo = usuarioService.registrar(registroDTO);
 
-			// Retornar resposta padronizada
-			return ResponseEntity.ok().body(Map.of(
+			// Retornar resposta
+			return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
 					"success", true,
 					"message", "Usuário registrado com sucesso",
-					"data", createUsuarioResponse(usuarioSalvo)));
+					"data", new UsuarioResponse(
+							usuarioSalvo.getIdUsuario(),
+							usuarioSalvo.getNome(),
+							usuarioSalvo.getEmail(),
+							usuarioSalvo.getTelefone(),
+							usuarioSalvo.getCpf(),
+							usuarioSalvo.getRoles().stream()
+									.map(Roles::name)
+									.collect(Collectors.toList()))));
 
 		} catch (RuntimeException e) {
 			return ResponseEntity.badRequest().body(
 					Collections.singletonMap("error", e.getMessage()));
-		} catch (Exception e) {
-			logger.error("Erro interno no registro", e);
-			return ResponseEntity.internalServerError().body(
-					Collections.singletonMap("error", "Erro interno no servidor"));
 		}
-	}
-
-	private UsuarioDTO convertToUsuarioDTO(RegistroDTO registroDTO) {
-		UsuarioDTO usuarioDTO = new UsuarioDTO();
-		usuarioDTO.setNome(registroDTO.getNome());
-		usuarioDTO.setEmail(registroDTO.getEmail());
-		usuarioDTO.setTelefone(registroDTO.getTelefone());
-		usuarioDTO.setSenha(registroDTO.getSenha()); // Será codificada no service
-		usuarioDTO.setTipo(registroDTO.getTipo());
-
-		if ("PF".equalsIgnoreCase(registroDTO.getTipo())) {
-			usuarioDTO.setCpf(registroDTO.getCpf());
-		} else if ("PJ".equalsIgnoreCase(registroDTO.getTipo())) {
-			usuarioDTO.setCnpj(registroDTO.getCnpj());
-		}
-
-		return usuarioDTO;
 	}
 
 	private Map<String, Object> createUsuarioResponse(Usuario usuario) {
