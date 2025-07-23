@@ -6,25 +6,29 @@ import com.recorder.controller.entity.enuns.StatusAgendamento;
 import com.recorder.dto.AgendamentoDTO;
 import org.springframework.stereotype.Component;
 
+// Em component/AgendamentoMapper.java
 @Component
 public class AgendamentoMapper {
 
     public Agendamento toEntity(AgendamentoDTO dto, Usuario usuario) {
         Agendamento agendamento = new Agendamento();
-        AgendamentoDTO agendamentoDTO = new AgendamentoDTO();
 
+        // Mapeamento correto: do DTO para a Entidade
         agendamento.setUsuario(usuario);
-        agendamento.setNome(agendamentoDTO.getNome());
-        agendamento.setEmail(agendamentoDTO.getEmail());
-        agendamento.setTelefone(agendamentoDTO.getTelefone());
-        agendamento.setPlano(agendamentoDTO.getPlano());
-        agendamento.setData(agendamentoDTO.getData());
-        agendamento.setHorario(agendamentoDTO.getHorario());
-        agendamento.setEsporte(agendamentoDTO.getEsporte());
-        agendamento.setLocal(agendamentoDTO.getLocal());
-        agendamento.setLatitude(agendamentoDTO.getLatitude());
-        agendamento.setLongitude(agendamentoDTO.getLongitude());
+        agendamento.setNome(dto.getNome()); // <<-- CORREÇÃO
+        agendamento.setEmail(dto.getEmail()); // <<-- CORREÇÃO
+        agendamento.setTelefone(dto.getTelefone()); // <<-- CORREÇÃO
+        agendamento.setPlano(dto.getPlano()); // <<-- CORREÇÃO
+        agendamento.setData(dto.getData()); // <<-- CORREÇÃO
+        agendamento.setHorario(dto.getHorario()); // <<-- CORREÇÃO
+        agendamento.setEsporte(dto.getEsporte()); // <<-- CORREÇÃO
+        agendamento.setLocal(dto.getLocal()); // <<-- CORREÇÃO
+        agendamento.setLatitude(dto.getLatitude()); // <<-- CORREÇÃO
+        agendamento.setLongitude(dto.getLongitude()); // <<-- CORREÇÃO
+
+        // O status deve ser sempre PENDENTE na criação
         agendamento.setStatus(StatusAgendamento.PENDENTE);
+
         return agendamento;
     }
 }

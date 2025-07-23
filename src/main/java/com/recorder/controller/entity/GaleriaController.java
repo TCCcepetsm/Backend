@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -44,37 +45,47 @@ public class GaleriaController {
         }
     }
 
-    @PostMapping("/upload")
-    public ResponseEntity<Galeria> uploadMidia(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("tipo") String tipo,
+    // Endpoint para upload de múltiplos arquivos
+    @PostMapping("/upload-multiple")
+    public ResponseEntity<List<Galeria>> uploadMultipleFiles(
+            @RequestParam("files") List<MultipartFile> files,
             @RequestParam(value = "profissionalId", required = false) Integer profissionalId) {
-        try {
-            // Validar tipo de arquivo
-            TipoMidia tipoMidia = TipoMidia.valueOf(tipo.toUpperCase());
-            
-            // Validar se o arquivo não está vazio
-            if (file.isEmpty()) {
-                return ResponseEntity.badRequest().build();
-            }
 
-            // Fazer upload para o Supabase
-            String urlMidia = supabaseStorageService.uploadFile(file, "galeria");
-
-            // Criar nova entrada na galeria
-            Galeria galeria = new Galeria();
-            galeria.setMidiaUrl(urlMidia);
-            galeria.setTipo(tipoMidia);
-            galeria.setProfissionalId(profissionalId);
-
-            Galeria galeriaSalva = galeriaRepository.save(galeria);
-            return ResponseEntity.status(HttpStatus.CREATED).body(galeriaSalva);
-
-        } catch (IllegalArgumentException e) {
+        if (files.isEmpty()) {
             return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+
+        List<Galeria> savedGalerias = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            try {
+                // Determina o tipo de mídia pelo Content-Type
+                TipoMidia tipoMidia = file.getContentType().startsWith("image/") ? TipoMidia.FOTO : TipoMidia.VIDEO;
+
+                // Faz o upload para o Supabase
+                String urlMidia = supabaseStorageService.uploadFile(file, "galeria");
+
+                // Cria a entidade
+                Galeria galeria = new Galeria();
+                galeria.setMidiaUrl(urlMidia);
+                galeria.setTipo(tipoMidia);
+                galeria.setProfissionalId(profissionalId);
+
+                savedGalerias.add(galeriaRepository.save(galeria));
+
+            } catch (Exception e) {
+                // Logar o erro pode ser útil aqui
+                System.err
+                        .println("Erro ao processar o arquivo: " + file.getOriginalFilename() + " - " + e.getMessage());
+                // Pode-se optar por continuar ou retornar um erro
+            }
+        }
+
+        if (savedGalerias.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedGalerias);
     }
 
     @DeleteMapping("/{id}")
@@ -84,7 +95,7 @@ public class GaleriaController {
             if (galeria.isPresent()) {
                 // Deletar arquivo do Supabase
                 supabaseStorageService.deleteFile(galeria.get().getMidiaUrl());
-                
+
                 // Deletar registro do banco
                 galeriaRepository.deleteById(id);
                 return ResponseEntity.noContent().build();
@@ -109,4 +120,3 @@ public class GaleriaController {
         }
     }
 }
-

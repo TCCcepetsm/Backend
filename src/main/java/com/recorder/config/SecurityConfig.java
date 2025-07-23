@@ -41,12 +41,20 @@ public class SecurityConfig {
 								"/api/auth/**",
 								"/api/usuario/registrar",
 								"/swagger-ui/**",
-								"/v3/api-docs/**")
-						.permitAll()
-						.requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
-						.requestMatchers("/api/profissional/**").hasAuthority("ROLE_PROFISSIONAL")
+								"/v3/api-docs/**",
+								"/api/galeria/**" // <<-- PERMITIR ACESSO PÚBLICO À GALERIA
+						).permitAll()
+						// Permissões específicas para admin/profissional
+						.requestMatchers("/api/agendamentos2/pendentes", "/api/agendamentos2/confirmados",
+								"/api/agendamentos2/confirmar/**", "/api/agendamentos2/recusar/**")
+						.hasAnyAuthority("ROLE_PROFISSIONAL", "ROLE_ADMIN")
+						.requestMatchers("/api/galeria/upload").hasAnyAuthority("ROLE_PROFISSIONAL", "ROLE_ADMIN") // Apenas
+																													// profissionais
+																													// podem
+																													// fazer
+																													// upload
+						// Qualquer outra requisição precisa de autenticação
 						.anyRequest().authenticated())
-
 				.sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 				.build();
