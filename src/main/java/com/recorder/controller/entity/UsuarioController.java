@@ -7,6 +7,11 @@ import com.recorder.dto.UsuarioDTO;
 import com.recorder.dto.UsuarioResponse;
 import com.recorder.service.UsuarioService;
 import jakarta.validation.Valid;
+import com.recorder.dto.AuthenticationResponse;
+import com.recorder.config.JwtService;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,59 +35,56 @@ import org.springframework.http.HttpStatus;
 public class UsuarioController {
 
 	private final UsuarioService usuarioService;
-	private final UsuarioRepository usuarioRepository; // Adicionado
+	private final UsuarioRepository usuarioRepository;
+	private final JwtService jwtService; // Adicione o JwtService
 
-	// Adicione a injeção do repositório
 	@Autowired
-	public UsuarioController(UsuarioService usuarioService, UsuarioRepository usuarioRepository) {
+	public UsuarioController(UsuarioService usuarioService, UsuarioRepository usuarioRepository,
+			JwtService jwtService) { // Injete no construtor
 		this.usuarioService = usuarioService;
 		this.usuarioRepository = usuarioRepository;
+		this.jwtService = jwtService;
 	}
 
 	@PostMapping("/registrar")
 	public ResponseEntity<?> registrar(@Valid @RequestBody RegistroDTO registroDTO, BindingResult result) {
-		try {
-			// Validação dos campos
+		// ... (sua validação existente) ...
+		if (result.hasErrors() || !registroDTO.getSenha().equals(registroDTO.getConfirmarSenha())
+				|| usuarioRepository.existsByEmail(registroDTO.getEmail())) {
+			// Retorne os erros como você já faz
+			// Exemplo:
 			if (result.hasErrors()) {
 				Map<String, String> errors = result.getFieldErrors().stream()
-						.collect(Collectors.toMap(
-								FieldError::getField,
-								FieldError::getDefaultMessage));
+						.collect(Collectors.toMap(FieldError::getField, FieldError::getDefaultMessage));
 				return ResponseEntity.badRequest().body(errors);
 			}
+			return ResponseEntity.badRequest().body(Collections.singletonMap("error", "Verifique os dados."));
+		}
 
-			// Verificação adicional de senhas
-			if (!registroDTO.getSenha().equals(registroDTO.getConfirmarSenha())) {
-				return ResponseEntity.badRequest().body(
-						Collections.singletonMap("error", "As senhas não coincidem"));
-			}
-
-			// Verificar se email já existe
-			if (usuarioRepository.existsByEmail(registroDTO.getEmail())) {
-				return ResponseEntity.badRequest().body(
-						Collections.singletonMap("error", "Email já cadastrado"));
-			}
-
-			// Registrar usuário
+		try {
 			Usuario usuarioSalvo = usuarioService.registrar(registroDTO);
 
-			// Retornar resposta
-			return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-					"success", true,
-					"message", "Usuário registrado com sucesso",
-					"data", new UsuarioResponse(
-							usuarioSalvo.getIdUsuario(),
-							usuarioSalvo.getNome(),
-							usuarioSalvo.getEmail(),
-							usuarioSalvo.getTelefone(),
-							usuarioSalvo.getCpf(),
-							usuarioSalvo.getRoles().stream()
-									.map(Roles::name)
-									.collect(Collectors.toList()))));
+			// --- GERAÇÃO DO TOKEN ---
+			List<GrantedAuthority> authorities = usuarioSalvo.getRoles().stream()
+					.map(role -> new SimpleGrantedAuthority(role.name())) // Use role.name() que já é
+																			// "ROLE_PROFISSIONAL"
+					.collect(Collectors.toList());
+
+			String jwtToken = jwtService
+					.generateToken(new User(usuarioSalvo.getEmail(), usuarioSalvo.getSenha(), authorities));
+
+			// --- RESPOSTA UNIFICADA ---
+			AuthenticationResponse authResponse = AuthenticationResponse.builder()
+					.token(jwtToken)
+					.email(usuarioSalvo.getEmail())
+					.nome(usuarioSalvo.getNome())
+					.roles(authorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList()))
+					.build();
+
+			return ResponseEntity.status(HttpStatus.CREATED).body(authResponse);
 
 		} catch (RuntimeException e) {
-			return ResponseEntity.badRequest().body(
-					Collections.singletonMap("error", e.getMessage()));
+			return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
 		}
 	}
 
