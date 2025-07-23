@@ -29,7 +29,6 @@ import java.util.Optional;
 @Slf4j
 @RestController
 @RequestMapping("/api/agendamentos2")
-@PreAuthorize("hasAnyRole('ROLE_USUARIO', 'ROLE_PROFISSIONAL', 'ROLE_ADMIN')")
 public class AgendamentoController {
 
 	private final AgendamentoService agendamentoService;
@@ -37,7 +36,7 @@ public class AgendamentoController {
 	private final AgendamentoRepository agendamentoRepository;
 
 	public AgendamentoController(AgendamentoService agendamentoService, UsuarioRepository usuarioRepository,
-								 AgendamentoRepository agendamentoRepository) {
+			AgendamentoRepository agendamentoRepository) {
 		this.agendamentoRepository = agendamentoRepository;
 		this.usuarioRepository = usuarioRepository;
 		this.agendamentoService = agendamentoService;
@@ -46,7 +45,7 @@ public class AgendamentoController {
 	@PostMapping("/criar2")
 	@PreAuthorize("hasRole('ROLE_USUARIO')") // Adicionei esta permissão explícita
 	public ResponseEntity<Agendamento> criarAgendamento(@Valid @RequestBody AgendamentoDTO agendamentoDTO,
-														Authentication authentication) {
+			Authentication authentication) {
 		String emailUsuario = authentication.getName();
 
 		log.info("Iniciando criação de agendamento - Usuário autenticado: {}", authentication.getName());
@@ -86,7 +85,7 @@ public class AgendamentoController {
 	@DeleteMapping("/{id}")
 	@PreAuthorize("hasRole('ROLE_USUARIO')") // Adicionei esta permissão explícita
 	public ResponseEntity<?> deletarAgendamento(@PathVariable Long id,
-												@AuthenticationPrincipal UserDetails userDetails) {
+			@AuthenticationPrincipal UserDetails userDetails) {
 		Optional<Agendamento> agendamentoOpt = agendamentoRepository.findById(id);
 		if (agendamentoOpt.isEmpty()) {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Agendamento não encontrado");
@@ -105,15 +104,15 @@ public class AgendamentoController {
 
 		return ResponseEntity.ok().body("Agendamento deletado com sucesso");
 	}
+
 	// ✨ NOVO MÉTODO: Endpoint para buscar um único agendamento por ID ✨
 	@GetMapping("/{id}")
 	@PreAuthorize("hasAnyRole('ROLE_PROFISSIONAL', 'ROLE_ADMIN')") // Ajuste as roles conforme sua necessidade
-	@Operation(summary = "Busca um agendamento específico por ID",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "Agendamento encontrado com sucesso"),
-					@ApiResponse(responseCode = "404", description = "Agendamento não encontrado"),
-					@ApiResponse(responseCode = "403", description = "Acesso negado")
-			})
+	@Operation(summary = "Busca um agendamento específico por ID", responses = {
+			@ApiResponse(responseCode = "200", description = "Agendamento encontrado com sucesso"),
+			@ApiResponse(responseCode = "404", description = "Agendamento não encontrado"),
+			@ApiResponse(responseCode = "403", description = "Acesso negado")
+	})
 	public ResponseEntity<Agendamento> getAgendamentoById(@PathVariable Long id) {
 		log.info("Buscando agendamento com ID: {}", id);
 		Optional<Agendamento> agendamento = agendamentoService.getAgendamentoById(id);
@@ -130,11 +129,10 @@ public class AgendamentoController {
 
 	@GetMapping("/pendentes")
 	@PreAuthorize("hasAnyRole('ROLE_PROFISSIONAL', 'ROLE_ADMIN')")
-	@Operation(summary = "Lista todos os agendamentos pendentes para aceitação/rejeição",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "Lista de agendamentos pendentes"),
-					@ApiResponse(responseCode = "403", description = "Acesso negado")
-			})
+	@Operation(summary = "Lista todos os agendamentos pendentes para aceitação/rejeição", responses = {
+			@ApiResponse(responseCode = "200", description = "Lista de agendamentos pendentes"),
+			@ApiResponse(responseCode = "403", description = "Acesso negado")
+	})
 	public ResponseEntity<List<Agendamento>> getAgendamentosPendentes() {
 		// ✨ CORREÇÃO AQUI: Passando o ENUM StatusAgendamento.PENDENTE ✨
 		List<Agendamento> agendamentos = agendamentoService.getAgendamentosByStatus(StatusAgendamento.PENDENTE);
@@ -143,11 +141,10 @@ public class AgendamentoController {
 
 	@GetMapping("/confirmados") // ✨ Nome do endpoint ajustado para refletir o enum "CONFIRMADO" ✨
 	@PreAuthorize("hasAnyRole('ROLE_PROFISSIONAL', 'ROLE_ADMIN')")
-	@Operation(summary = "Lista todos os agendamentos confirmados pelo profissional",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "Lista de agendamentos confirmados"),
-					@ApiResponse(responseCode = "403", description = "Acesso negado")
-			})
+	@Operation(summary = "Lista todos os agendamentos confirmados pelo profissional", responses = {
+			@ApiResponse(responseCode = "200", description = "Lista de agendamentos confirmados"),
+			@ApiResponse(responseCode = "403", description = "Acesso negado")
+	})
 	public ResponseEntity<List<Agendamento>> getAgendamentosConfirmados() { // ✨ Nome do método ajustado ✨
 		// ✨ CORREÇÃO AQUI: Passando o ENUM StatusAgendamento.CONFIRMADO ✨
 		List<Agendamento> agendamentos = agendamentoService.getAgendamentosByStatus(StatusAgendamento.CONFIRMADO);
@@ -156,26 +153,25 @@ public class AgendamentoController {
 
 	@PutMapping("/confirmar/{id}") // ✨ Nome do endpoint ajustado para refletir o enum "CONFIRMADO" ✨
 	@PreAuthorize("hasAnyRole('ROLE_PROFISSIONAL', 'ROLE_ADMIN')")
-	@Operation(summary = "Confirma um agendamento específico",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "Agendamento confirmado com sucesso"),
-					@ApiResponse(responseCode = "404", description = "Agendamento não encontrado"),
-					@ApiResponse(responseCode = "403", description = "Acesso negado ou agendamento já processado")
-			})
+	@Operation(summary = "Confirma um agendamento específico", responses = {
+			@ApiResponse(responseCode = "200", description = "Agendamento confirmado com sucesso"),
+			@ApiResponse(responseCode = "404", description = "Agendamento não encontrado"),
+			@ApiResponse(responseCode = "403", description = "Acesso negado ou agendamento já processado")
+	})
 	public ResponseEntity<Agendamento> confirmarAgendamento(@PathVariable Long id) { // ✨ Nome do método ajustado ✨
 		// ✨ CORREÇÃO AQUI: Passando o ENUM StatusAgendamento.CONFIRMADO ✨
-		Agendamento agendamentoAtualizado = agendamentoService.updateAgendamentoStatus(id, StatusAgendamento.CONFIRMADO);
+		Agendamento agendamentoAtualizado = agendamentoService.updateAgendamentoStatus(id,
+				StatusAgendamento.CONFIRMADO);
 		return ResponseEntity.ok(agendamentoAtualizado);
 	}
 
 	@PutMapping("/recusar/{id}") // ✨ Nome do endpoint ajustado para refletir o enum "RECUSADO" ✨
 	@PreAuthorize("hasAnyRole('ROLE_PROFISSIONAL', 'ROLE_ADMIN')")
-	@Operation(summary = "Recusa um agendamento específico",
-			responses = {
-					@ApiResponse(responseCode = "200", description = "Agendamento recusado com sucesso"),
-					@ApiResponse(responseCode = "404", description = "Agendamento não encontrado"),
-					@ApiResponse(responseCode = "403", description = "Acesso negado ou agendamento já processado")
-			})
+	@Operation(summary = "Recusa um agendamento específico", responses = {
+			@ApiResponse(responseCode = "200", description = "Agendamento recusado com sucesso"),
+			@ApiResponse(responseCode = "404", description = "Agendamento não encontrado"),
+			@ApiResponse(responseCode = "403", description = "Acesso negado ou agendamento já processado")
+	})
 	public ResponseEntity<Agendamento> recusarAgendamento(@PathVariable Long id) { // ✨ Nome do método ajustado ✨
 		// ✨ CORREÇÃO AQUI: Passando o ENUM StatusAgendamento.RECUSADO ✨
 		Agendamento agendamentoAtualizado = agendamentoService.updateAgendamentoStatus(id, StatusAgendamento.RECUSADO);

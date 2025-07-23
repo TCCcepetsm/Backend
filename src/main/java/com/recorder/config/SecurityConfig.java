@@ -36,23 +36,36 @@ public class SecurityConfig {
 				.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 				.csrf(csrf -> csrf.disable())
 				.authorizeHttpRequests(auth -> auth
+						// Endpoints Públicos
 						.requestMatchers(
 								"/actuator/health",
 								"/api/auth/**",
 								"/api/usuario/registrar",
 								"/swagger-ui/**",
 								"/v3/api-docs/**",
-								"/api/galeria/**" // <<-- PERMITIR ACESSO PÚBLICO À GALERIA
+								"/api/galeria", // Listagem pública da galeria
+								"/api/galeria/tipo/**" // Listagem pública por tipo
 						).permitAll()
-						// Permissões específicas para admin/profissional
-						.requestMatchers("/api/agendamentos2/pendentes", "/api/agendamentos2/confirmados",
-								"/api/agendamentos2/confirmar/**", "/api/agendamentos2/recusar/**")
-						.hasAnyAuthority("ROLE_PROFISSIONAL", "ROLE_ADMIN")
-						.requestMatchers("/api/galeria/upload").hasAnyAuthority("ROLE_PROFISSIONAL", "ROLE_ADMIN") // Apenas
-																													// profissionais
-																													// podem
-																													// fazer
-																													// upload
+
+						// Endpoints de Profissional/Admin
+						.requestMatchers(
+								"/api/agendamentos2/pendentes",
+								"/api/agendamentos2/confirmados",
+								"/api/agendamentos2/confirmar/**",
+								"/api/agendamentos2/recusar/**",
+								"/api/agendamentos2/{id}", // Detalhes de um agendamento
+								"/api/galeria/upload-multiple", // Upload de mídia
+								"/api/galeria/{id}" // Deletar mídia
+						).hasAnyAuthority("ROLE_PROFISSIONAL", "ROLE_ADMIN")
+
+						// Endpoints de Usuário Comum
+						.requestMatchers(
+								"/api/agendamentos2/criar2",
+								"/api/agendamentos2/meus-agendamentos",
+								"/api/agendamentos2/{id}" // Usuário pode deletar seu próprio agendamento (lógica no
+															// controller)
+						).hasAuthority("ROLE_USUARIO")
+
 						// Qualquer outra requisição precisa de autenticação
 						.anyRequest().authenticated())
 				.sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
