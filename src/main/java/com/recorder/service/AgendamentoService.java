@@ -26,15 +26,13 @@ public class AgendamentoService {
 
     @Transactional
     public Agendamento criarAgendamento(AgendamentoDTO dto, String emailUsuario) {
-        // Busca o usuário pelo e-mail do token
-
-
         Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + emailUsuario));
 
         Agendamento agendamento = new Agendamento();
         agendamento.setUsuario(usuario);
 
+        // AQUI ESTÁ O PROBLEMA
         agendamento.setNome(dto.getNome());
         agendamento.setEmail(dto.getEmail());
         agendamento.setTelefone(dto.getTelefone());
@@ -45,11 +43,12 @@ public class AgendamentoService {
         agendamento.setLocal(dto.getLocal());
         agendamento.setLatitude(dto.getLatitude());
         agendamento.setLongitude(dto.getLongitude());
-        // ✨ CORREÇÃO AQUI: Garante que sempre seja PENDENTE na criação e remove a linha duplicada ✨
+        // ✨ CORREÇÃO AQUI: Garante que sempre seja PENDENTE na criação e remove a linha
+        // duplicada ✨
         agendamento.setStatus(StatusAgendamento.PENDENTE); // Atribui o ENUM PENDENTE
 
-
-       // agendamento.setStatus(dto.getStatus() != null ? dto.getStatus() : StatusAgendamento.PENDENTE);
+        // agendamento.setStatus(dto.getStatus() != null ? dto.getStatus() :
+        // StatusAgendamento.PENDENTE);
 
         return agendamentoRepository.save(agendamento);
     }
@@ -58,21 +57,22 @@ public class AgendamentoService {
 
     // ✨ CORREÇÃO: O parâmetro 'status' deve ser do tipo StatusAgendamento (ENUM) ✨
     public List<Agendamento> getAgendamentosByStatus(StatusAgendamento status) {
-        // ✨ CORREÇÃO: O método no repositório DEVE ser findByStatusOrderByDataAscHorarioAsc,
-        //   e ele deve aceitar o ENUM. (Verifique o Repositório!) ✨
-        return agendamentoRepository. findByStatusOrderByDataAscHorarioAsc(status);
+        // ✨ CORREÇÃO: O método no repositório DEVE ser
+        // findByStatusOrderByDataAscHorarioAsc,
+        // e ele deve aceitar o ENUM. (Verifique o Repositório!) ✨
+        return agendamentoRepository.findByStatusOrderByDataAscHorarioAsc(status);
     }
 
     @Transactional
-    // ✨ CORREÇÃO: O parâmetro 'newStatus' deve ser do tipo StatusAgendamento (ENUM) ✨
+    // ✨ CORREÇÃO: O parâmetro 'newStatus' deve ser do tipo StatusAgendamento (ENUM)
+    // ✨
     public Agendamento updateAgendamentoStatus(Long id, StatusAgendamento newStatus) {
         Agendamento agendamento = agendamentoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Agendamento não encontrado"));
 
         // ✨ CORREÇÃO: Comparar com os valores do ENUM, não Strings literais ✨
         if (agendamento.getStatus().equals(StatusAgendamento.CONFIRMADO) ||
-                agendamento.getStatus().equals(StatusAgendamento.RECUSADO))
-                {
+                agendamento.getStatus().equals(StatusAgendamento.RECUSADO)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Agendamento já foi processado ou cancelado.");
         }
 
@@ -81,9 +81,8 @@ public class AgendamentoService {
         log.info("Agendamento ID {} atualizado para status: {}", id, newStatus);
         return agendamentoRepository.save(agendamento);
     }
+
     public Optional<Agendamento> getAgendamentoById(Long id) {
         return agendamentoRepository.findById(id); // Usa o método findById do JpaRepository
     }
 }
-
-

@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import com.recorder.dto.AuthenticationResponse;
 import com.recorder.config.JwtService;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.HashSet;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication; // Importe esta classe
 
 @RestController
 @RequestMapping("/api/usuario")
@@ -116,6 +118,26 @@ public class UsuarioController {
 		}
 	}
 
+	@GetMapping("/me")
+	public ResponseEntity<UsuarioResponse> getMeuPerfil(Authentication authentication) {
+		// O objeto 'Authentication' é injetado pelo Spring Security e contém os dados
+		// do usuário logado.
+		String userEmail = authentication.getName();
+
+		Usuario usuario = usuarioRepository.findByEmail(userEmail)
+				.orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado com o email: " + userEmail));
+
+		// Cria uma resposta segura, sem a senha.
+		UsuarioResponse response = new UsuarioResponse(
+				usuario.getIdUsuario(),
+				usuario.getNome(),
+				usuario.getEmail(),
+				usuario.getTelefone(),
+				usuario.getCpf(), // Será nulo se for PJ
+				usuario.getRoles().stream().map(Enum::name).collect(Collectors.toList()));
+
+		return ResponseEntity.ok(response);
+	}
 	// ======== CRUD AQUI ========
 
 	@GetMapping
