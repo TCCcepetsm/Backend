@@ -23,6 +23,20 @@
 	</properties>
 
 	<dependencies>
+		<!-- Dependência básica do Spring Boot -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter</artifactId>
+			<version>3.1.0</version>
+		</dependency>
+
+		<!-- Para configurações -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-configuration-processor</artifactId>
+			<version>3.1.0</version>
+			<optional>true</optional>
+		</dependency>
 		<!-- Starters principais -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

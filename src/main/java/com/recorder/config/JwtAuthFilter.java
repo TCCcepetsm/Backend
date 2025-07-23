@@ -45,8 +45,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 			throws ServletException, IOException {
 
 		// Configura headers CORS
-		config.setAllowedOrigins(List.of("https://meu-frontend-tcc.onrender.com", "*"));
-
+		response.setHeader("Access-Control-Allow-Origin", "https://meu-frontend-tcc.onrender.com");
 		response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
 		response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
 		response.setHeader("Access-Control-Allow-Credentials", "true");
@@ -57,14 +56,28 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 			response.setStatus(HttpServletResponse.SC_OK);
 			return;
 		}
-	}
 
-	private void configureCorsHeaders(HttpServletResponse response) {
-		config.setAllowedOrigins(List.of("https://meu-frontend-tcc.onrender.com", "*"));
-		response.setHeader("Access-Control-Allow-Credentials", "true");
-		response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-		response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
-		response.setHeader("Access-Control-Expose-Headers", "Authorization");
+		try {
+			// Verifica se é um endpoint público
+			if (isPublicEndpoint(request)) {
+				filterChain.doFilter(request, response);
+				return;
+			}
+
+			// Extrai o token JWT do header Authorization
+			final String authHeader = request.getHeader("Authorization");
+			if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+				throw new SecurityException("Token não fornecido ou formato inválido");
+			}
+
+			final String jwt = authHeader.substring(7);
+			authenticateToken(jwt, request);
+
+			// Continua a cadeia de filtros
+			filterChain.doFilter(request, response);
+		} catch (Exception e) {
+			handleAuthenticationError(response, e);
+		}
 	}
 
 	private boolean isPublicEndpoint(HttpServletRequest request) {
@@ -84,7 +97,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
 		String role = jwtService.extractRole(jwt);
 		if (role == null) {
-			throw new SecurityException("Token without valid role");
+			throw new SecurityException("Token sem role válida");
 		}
 
 		UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -94,28 +107,28 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
 		authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 		SecurityContextHolder.getContext().setAuthentication(authToken);
-		logger.debug("Authenticated user: {}", userEmail);
+		logger.debug("Usuário autenticado: {}", userEmail);
 	}
 
 	private void validateToken(String jwt, UserDetails userDetails) {
 		if (userDetails == null) {
-			throw new UsernameNotFoundException("User not found");
+			throw new UsernameNotFoundException("Usuário não encontrado");
 		}
 		if (!jwtService.isTokenValid(jwt, userDetails)) {
-			throw new SecurityException("Invalid token");
+			throw new SecurityException("Token inválido");
 		}
 	}
 
 	private void handleAuthenticationError(HttpServletResponse response, Exception e) throws IOException {
 		SecurityContextHolder.clearContext();
-		logger.error("Authentication error: {}", e.getMessage());
+		logger.error("Erro de autenticação: {}", e.getMessage());
 
 		if (e instanceof UsernameNotFoundException) {
-			response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "User not found");
+			response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Usuário não encontrado");
 		} else if (e instanceof SecurityException) {
 			response.sendError(HttpServletResponse.SC_FORBIDDEN, e.getMessage());
 		} else {
-			response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed");
+			response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Falha na autenticação");
 		}
 	}
 }

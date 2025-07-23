@@ -30,6 +30,7 @@ C:\Users\guilh\Downloads\tcc\backend\src\main\java\com\recorder\dto\Authenticati
 C:\Users\guilh\Downloads\tcc\backend\src\main\java\com\recorder\dto\AuthenticationResponse.java
 C:\Users\guilh\Downloads\tcc\backend\src\main\java\com\recorder\dto\LoginDTO.java
 C:\Users\guilh\Downloads\tcc\backend\src\main\java\com\recorder\dto\RegisterRequest.java
+C:\Users\guilh\Downloads\tcc\backend\src\main\java\com\recorder\dto\RegistroDTO.java
 C:\Users\guilh\Downloads\tcc\backend\src\main\java\com\recorder\dto\UsuarioDTO.java
 C:\Users\guilh\Downloads\tcc\backend\src\main\java\com\recorder\dto\UsuarioResponse.java
 C:\Users\guilh\Downloads\tcc\backend\src\main\java\com\recorder\exception\AgendamentoException.java
