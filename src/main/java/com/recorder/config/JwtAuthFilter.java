@@ -45,36 +45,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 			throws ServletException, IOException {
 
 		// Configura headers CORS
-		configureCorsHeaders(response);
+		response.setHeader("Access-Control-Allow-Origin", "https://meu-frontend-tcc.onrender.com");
+		response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+		response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+		response.setHeader("Access-Control-Allow-Credentials", "true");
+		response.setHeader("Access-Control-Max-Age", "3600");
 
-		// Handle OPTIONS requests first
+		// Para requisições OPTIONS, retorne imediatamente
 		if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
 			response.setStatus(HttpServletResponse.SC_OK);
 			return;
-		}
-
-		// Skip authentication for public endpoints
-		if (isPublicEndpoint(request)) {
-			filterChain.doFilter(request, response);
-			return;
-		}
-
-		try {
-			final String authHeader = request.getHeader("Authorization");
-
-			if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-				logger.warn("Attempt to access protected resource without JWT");
-				response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid Authorization header");
-				return;
-			}
-
-			final String jwt = authHeader.substring(7);
-			authenticateToken(jwt, request);
-
-			filterChain.doFilter(request, response);
-
-		} catch (Exception e) {
-			handleAuthenticationError(response, e);
 		}
 	}
 

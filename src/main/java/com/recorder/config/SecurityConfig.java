@@ -15,7 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
+import java.util.List;
 import java.util.Arrays; // Importar Arrays
 
 @Configuration
@@ -36,40 +36,15 @@ public class SecurityConfig {
 				.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 				.csrf(csrf -> csrf.disable())
 				.authorizeHttpRequests(auth -> auth
-						// 1. ROTAS QUE EXIGEM AUTENTICAÇÃO E/OU AUTORIZAÇÃO ESPECÍFICA (MAIS
-						// ESPECÍFICAS PRIMEIRO)
-						// Esta deve vir antes de qualquer .permitAll() que inclua /api/auth/**
-						.requestMatchers("/api/auth/validate-token").authenticated() // EXIGE TOKEN VÁLIDO
-						.requestMatchers("/actuator/health").permitAll()
-						// Rotas que EXIGEM autenticação (outras rotas que requerem token, como criar2)
-						.requestMatchers("/api/agendamentos2/criar2").authenticated()
-
-						// ✨ NOVO: Rotas de agendamento2 agora exigem autenticação.
-						// A autorização por role será feita via @PreAuthorize no AgendamentoController.
-						.requestMatchers("/api/agendamentos2/**").authenticated() // ✨ ADICIONADO/AJUSTADO AQUI ✨
-
-						// Rotas administrativas (requerem ROLE_ADMIN)
-						.requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
-
-						// Rotas para profissionais (requerem ROLE_PROFISSIONAL)
-						.requestMatchers("/api/profissional/**").hasAuthority("ROLE_PROFISSIONAL")
-
-						// Rotas de agendamento (requerem qualquer uma das roles especificadas)
-						.requestMatchers("/api/agendamentos/**")
-						.hasAnyAuthority("ROLE_USUARIO", "ROLE_PROFISSIONAL", "ROLE_ADMIN")
-
-						// 2. ROTAS PÚBLICAS (NÃO EXIGEM AUTENTICAÇÃO OU AUTORIZAÇÃO)
-						// O login ('/api/auth/authenticate') DEVE estar aqui.
-						// Todas as rotas genéricas .permitAll() devem vir DEPOIS das regras
-						// específicas.
-						.requestMatchers("/api/auth/authenticate", // Rota de login (sem token)
-								"/api/usuario/**", // Criação de usuário, etc.
-								"/swagger-ui/**", // Swagger UI
-								"/v3/api-docs/**") // OpenAPI Docs
-						// REMOVIDO: "/api/agendamentos2" daqui, pois agora é .authenticated()
+						.requestMatchers(
+								"/actuator/health",
+								"/api/auth/**",
+								"/api/usuario/registrar",
+								"/swagger-ui/**",
+								"/v3/api-docs/**")
 						.permitAll()
-
-						// 3. TODAS AS OUTRAS REQUISIÇÕES (EXIGEM AUTENTICAÇÃO)
+						.requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+						.requestMatchers("/api/profissional/**").hasAuthority("ROLE_PROFISSIONAL")
 						.anyRequest().authenticated())
 				.sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
@@ -89,18 +64,18 @@ public class SecurityConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration config = new CorsConfiguration();
-
-		// Configuração para produção - permite qualquer origem
-		config.setAllowedOriginPatterns(Arrays.asList("*"));
-
-		config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS")); // Métodos HTTP permitidos
-		config.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type")); // Cabeçalhos
-																									// permitidos
-		config.setAllowCredentials(true); // Crucial: Permite o envio de cookies/cabeçalhos de autorização
-		config.setMaxAge(3600L); // Tempo de cache para preflight requests (em segundos)
+		config.setAllowedOrigins(List.of(
+				"https://meu-frontend-tcc.onrender.com",
+				"http://localhost:3000" // para desenvolvimento local
+		));
+		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
+		config.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
+		config.setExposedHeaders(List.of("Authorization"));
+		config.setAllowCredentials(true);
+		config.setMaxAge(3600L);
 
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-		source.registerCorsConfiguration("/**", config); // Aplica esta configuração CORS a todas as rotas
+		source.registerCorsConfiguration("/**", config);
 		return source;
 	}
 
