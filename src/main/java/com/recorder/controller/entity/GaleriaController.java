@@ -45,11 +45,11 @@ public class GaleriaController {
         }
     }
 
-    // Endpoint para upload de múltiplos arquivos
     @PostMapping("/upload-multiple")
     public ResponseEntity<List<Galeria>> uploadMultipleFiles(
             @RequestParam("files") List<MultipartFile> files,
-            @RequestParam(value = "profissionalId", required = false) Integer profissionalId) {
+            // CORREÇÃO: Mudar o tipo do parâmetro para Long
+            @RequestParam(value = "profissionalId", required = false) Long profissionalId) { // <<-- TIPO CORRIGIDO
 
         if (files.isEmpty()) {
             return ResponseEntity.badRequest().build();
@@ -59,25 +59,18 @@ public class GaleriaController {
 
         for (MultipartFile file : files) {
             try {
-                // Determina o tipo de mídia pelo Content-Type
                 TipoMidia tipoMidia = file.getContentType().startsWith("image/") ? TipoMidia.FOTO : TipoMidia.VIDEO;
-
-                // Faz o upload para o Supabase
                 String urlMidia = supabaseStorageService.uploadFile(file, "galeria");
 
-                // Cria a entidade
                 Galeria galeria = new Galeria();
                 galeria.setMidiaUrl(urlMidia);
                 galeria.setTipo(tipoMidia);
-                galeria.setProfissionalId(profissionalId);
+                galeria.setProfissionalId(profissionalId); // Agora os tipos são compatíveis
 
                 savedGalerias.add(galeriaRepository.save(galeria));
 
             } catch (Exception e) {
-                // Logar o erro pode ser útil aqui
-                System.err
-                        .println("Erro ao processar o arquivo: " + file.getOriginalFilename() + " - " + e.getMessage());
-                // Pode-se optar por continuar ou retornar um erro
+                System.err.println("Erro ao processar o arquivo: " + file.getOriginalFilename() + " - " + e.getMessage());
             }
         }
 
@@ -87,6 +80,7 @@ public class GaleriaController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(savedGalerias);
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Integer id) {

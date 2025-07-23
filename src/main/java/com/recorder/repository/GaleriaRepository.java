@@ -12,8 +12,10 @@ public interface GaleriaRepository extends JpaRepository<Galeria, Integer> {
     
     List<Galeria> findByTipo(TipoMidia tipo);
     
-    List<Galeria> findByProfissionalId(Integer profissionalId);
+    // CORREÇÃO: Mudar o tipo do parâmetro para Long
+    List<Galeria> findByProfissionalId(Long profissionalId); // <<-- TIPO CORRIGIDO
     
-    List<Galeria> findByTipoAndProfissionalId(TipoMidia tipo, Integer profissionalId);
+    // CORREÇÃO: Mudar o tipo do parâmetro para Long
+    List<Galeria> findByTipoAndProfissionalId(TipoMidia tipo, Long profissionalId); // <<-- TIPO CORRIGIDO
 }
 

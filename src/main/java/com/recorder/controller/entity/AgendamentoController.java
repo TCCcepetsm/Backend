@@ -43,7 +43,7 @@ public class AgendamentoController {
 	}
 
 	@PostMapping("/criar2")
-	@PreAuthorize("hasRole('ROLE_USUARIO')") // Adicionei esta permissão explícita
+	@PreAuthorize("hasAuthority('ROLE_USUARIO')") 
 	public ResponseEntity<Agendamento> criarAgendamento(@Valid @RequestBody AgendamentoDTO agendamentoDTO,
 			Authentication authentication) {
 		String emailUsuario = authentication.getName();
@@ -63,7 +63,7 @@ public class AgendamentoController {
 	}
 
 	@GetMapping("/meus-agendamentos")
-	@PreAuthorize("hasRole('ROLE_USUARIO')") // Adicionei esta permissão explícita
+    @PreAuthorize("hasAuthority('ROLE_USUARIO')") // <<-- CORREÇÃOplícita
 	public ResponseEntity<List<Agendamento>> getAgendamentosDoUsuario(
 			@AuthenticationPrincipal UserDetails userDetails) {
 		String email = userDetails.getUsername();
@@ -72,7 +72,7 @@ public class AgendamentoController {
 	}
 
 	@GetMapping
-	@PreAuthorize("hasRole('ROLE_USUARIO')") // Adicionei esta permissão explícita
+    @PreAuthorize("hasAuthority('ROLE_USUARIO')") // <<-- CORREÇÃO
 	public ResponseEntity<List<Agendamento>> getMeusAgendamentos(@AuthenticationPrincipal UserDetails userDetails) {
 		Usuario usuario = usuarioRepository.findByEmail(userDetails.getUsername())
 				.orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
@@ -83,7 +83,7 @@ public class AgendamentoController {
 	}
 
 	@DeleteMapping("/{id}")
-	@PreAuthorize("hasRole('ROLE_USUARIO')") // Adicionei esta permissão explícita
+    @PreAuthorize("hasAuthority('ROLE_USUARIO')") // <<-- CORREÇÃO
 	public ResponseEntity<?> deletarAgendamento(@PathVariable Long id,
 			@AuthenticationPrincipal UserDetails userDetails) {
 		Optional<Agendamento> agendamentoOpt = agendamentoRepository.findById(id);
@@ -107,7 +107,7 @@ public class AgendamentoController {
 
 	// ✨ NOVO MÉTODO: Endpoint para buscar um único agendamento por ID ✨
 	@GetMapping("/{id}")
-	@PreAuthorize("hasAnyRole('ROLE_PROFISSIONAL', 'ROLE_ADMIN')") // Ajuste as roles conforme sua necessidade
+	@PreAuthorize("hasAnyAuthority('ROLE_PROFISSIONAL', 'ROLE_ADMIN')") // <<-- CORREÇÃO
 	@Operation(summary = "Busca um agendamento específico por ID", responses = {
 			@ApiResponse(responseCode = "200", description = "Agendamento encontrado com sucesso"),
 			@ApiResponse(responseCode = "404", description = "Agendamento não encontrado"),
@@ -128,7 +128,7 @@ public class AgendamentoController {
 	// --- NOVOS ENDPOINTS PARA PROFISSIONAL ---
 
 	@GetMapping("/pendentes")
-	@PreAuthorize("hasAnyRole('ROLE_PROFISSIONAL', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROFISSIONAL', 'ROLE_ADMIN')") // <<-- CORREÇÃO
 	@Operation(summary = "Lista todos os agendamentos pendentes para aceitação/rejeição", responses = {
 			@ApiResponse(responseCode = "200", description = "Lista de agendamentos pendentes"),
 			@ApiResponse(responseCode = "403", description = "Acesso negado")
@@ -140,7 +140,7 @@ public class AgendamentoController {
 	}
 
 	@GetMapping("/confirmados") // ✨ Nome do endpoint ajustado para refletir o enum "CONFIRMADO" ✨
-	@PreAuthorize("hasAnyRole('ROLE_PROFISSIONAL', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROFISSIONAL', 'ROLE_ADMIN')") // <<-- CORREÇÃO
 	@Operation(summary = "Lista todos os agendamentos confirmados pelo profissional", responses = {
 			@ApiResponse(responseCode = "200", description = "Lista de agendamentos confirmados"),
 			@ApiResponse(responseCode = "403", description = "Acesso negado")
@@ -152,7 +152,7 @@ public class AgendamentoController {
 	}
 
 	@PutMapping("/confirmar/{id}") // ✨ Nome do endpoint ajustado para refletir o enum "CONFIRMADO" ✨
-	@PreAuthorize("hasAnyRole('ROLE_PROFISSIONAL', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROFISSIONAL', 'ROLE_ADMIN')") // <<-- CORREÇÃO
 	@Operation(summary = "Confirma um agendamento específico", responses = {
 			@ApiResponse(responseCode = "200", description = "Agendamento confirmado com sucesso"),
 			@ApiResponse(responseCode = "404", description = "Agendamento não encontrado"),
@@ -166,7 +166,7 @@ public class AgendamentoController {
 	}
 
 	@PutMapping("/recusar/{id}") // ✨ Nome do endpoint ajustado para refletir o enum "RECUSADO" ✨
-	@PreAuthorize("hasAnyRole('ROLE_PROFISSIONAL', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROFISSIONAL', 'ROLE_ADMIN')") // <<-- CORREÇÃO
 	@Operation(summary = "Recusa um agendamento específico", responses = {
 			@ApiResponse(responseCode = "200", description = "Agendamento recusado com sucesso"),
 			@ApiResponse(responseCode = "404", description = "Agendamento não encontrado"),

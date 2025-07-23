@@ -16,17 +16,18 @@ public class Galeria {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Integer id; // O ID da própria galeria pode ser Integer, sem problemas.
     
     @Column(name = "midia_url", nullable = false, length = 500)
-    private String midiaUrl; // URL da foto/vídeo
+    private String midiaUrl;
     
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo", nullable = false)
-    private TipoMidia tipo;  // Enum para Foto ou Vídeo
+    private TipoMidia tipo;
     
+    // CORREÇÃO: Mudar de Integer para Long para ser compatível com o ID do Usuário
     @Column(name = "profissional_id")
-    private Integer profissionalId; // ID do profissional
+    private Long profissionalId; // <<-- TIPO CORRIGIDO
     
     @Column(name = "data_postagem")
     private LocalDateTime dataPostagem;
@@ -36,4 +37,3 @@ public class Galeria {
         dataPostagem = LocalDateTime.now();
     }
 }
-
