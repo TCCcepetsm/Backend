@@ -17,24 +17,24 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import com.recorder.dto.RegistroDTO;
 
 @RestController
 @RequestMapping("/api/usuario")
 public class UsuarioController {
 	private static final Logger logger = LoggerFactory.getLogger(UsuarioController.class);
+
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
 	private final UsuarioService usuarioService;
-	private final UsuarioRepository usuarioRepository; // Adicionado
 
-	public UsuarioController(UsuarioService usuarioService, UsuarioRepository usuarioRepository) { // Modificado
+	public UsuarioController(UsuarioService usuarioService) {
 		this.usuarioService = usuarioService;
-		this.usuarioRepository = usuarioRepository;
 	}
 
 	@PostMapping("/registrar")
-	public ResponseEntity<?> registrar(@Valid @RequestBody UsuarioDTO usuarioDTO, BindingResult result) {
+	public ResponseEntity<?> registrar(@Valid @RequestBody RegistroDTO registroDTO, BindingResult result) {
 		try {
 			// Validação das anotações Bean Validation
 			if (result.hasErrors()) {
@@ -43,6 +43,25 @@ public class UsuarioController {
 						.collect(Collectors.toList());
 				logger.warn("Erros de validação: {}", errors);
 				return ResponseEntity.badRequest().body(errors);
+			}
+
+			// Verificação adicional de senhas
+			if (!registroDTO.getSenha().equals(registroDTO.getConfirmarSenha())) {
+				return ResponseEntity.badRequest().body("As senhas não coincidem");
+			}
+
+			// Converter RegistroDTO para UsuarioDTO
+			UsuarioDTO usuarioDTO = new UsuarioDTO();
+			usuarioDTO.setNome(registroDTO.getNome());
+			usuarioDTO.setEmail(registroDTO.getEmail());
+			usuarioDTO.setTelefone(registroDTO.getTelefone());
+			usuarioDTO.setSenha(passwordEncoder.encode(registroDTO.getSenha()));
+			usuarioDTO.setTipo(registroDTO.getTipo());
+
+			if ("PF".equalsIgnoreCase(registroDTO.getTipo())) {
+				usuarioDTO.setCpf(registroDTO.getCpf());
+			} else if ("PJ".equalsIgnoreCase(registroDTO.getTipo())) {
+				usuarioDTO.setCnpj(registroDTO.getCnpj());
 			}
 
 			// Usar o UsuarioService para registrar
@@ -60,8 +79,6 @@ public class UsuarioController {
 							.collect(Collectors.toList())));
 
 		} catch (RuntimeException e) {
-			// Erros de validação de negócio (email já cadastrado, senhas não coincidem,
-			// etc.)
 			logger.warn("Erro de validação de negócio: {}", e.getMessage());
 			return ResponseEntity.badRequest().body(e.getMessage());
 		} catch (Exception e) {

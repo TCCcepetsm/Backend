@@ -18,68 +18,35 @@ import java.util.Optional;
 import java.util.Set;
 
 @Service
-@RequiredArgsConstructor
 public class UsuarioService {
-
-    private static final Logger logger = LoggerFactory.getLogger(UsuarioService.class);
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // ========== REGISTRO ==========
-    @Transactional
-    public Usuario registrar(UsuarioDTO request) {
-        logger.info("DEBUG: Iniciando registro para email: {}", request.getEmail());
-        logger.info("DEBUG: Senha recebida: {}", request.getSenha());
-        logger.info("DEBUG: Confirmar Senha recebida: {}", request.getConfirmarSenha());
-        logger.info("DEBUG: agreeTerms recebido: {}", request.getAgreeTerms());
+    public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
+        this.usuarioRepository = usuarioRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
-        // Validação de senha (já que @AssertTrue não pode comparar dois campos)
-        if (!request.getSenha().equals(request.getConfirmarSenha())) {
-            logger.warn("DEBUG: Senhas não coincidem para email: {}", request.getEmail());
-            throw new RuntimeException("Senha e confirmação de senha não coincidem.");
+    public Usuario registrar(UsuarioDTO usuarioDTO) {
+        // Verificar se email já existe
+        if (usuarioRepository.findByEmail(usuarioDTO.getEmail()).isPresent()) {
+            throw new RuntimeException("Email já cadastrado");
         }
 
-        // Verificar unicidade de email, CPF e CNPJ no banco de dados
-        if (usuarioRepository.existsByEmail(request.getEmail())) {
-            logger.warn("DEBUG: Tentativa de registro com email já em uso: {}", request.getEmail());
-            throw new RuntimeException("Email já cadastrado.");
-        }
+        Usuario usuario = new Usuario();
+        usuario.setNome(usuarioDTO.getNome());
+        usuario.setEmail(usuarioDTO.getEmail());
+        usuario.setTelefone(usuarioDTO.getTelefone());
+        usuario.setSenha(passwordEncoder.encode(usuarioDTO.getSenha()));
 
-        if (request.getCpf() != null && !request.getCpf().trim().isEmpty() &&
-                usuarioRepository.existsByCpf(request.getCpf())) {
-            logger.warn("DEBUG: Tentativa de registro com CPF já em uso: {}", request.getCpf());
-            throw new RuntimeException("CPF já cadastrado.");
+        if ("PF".equalsIgnoreCase(usuarioDTO.getTipo())) {
+            usuario.setCpf(usuarioDTO.getCpf());
+            usuario.setRoles(Set.of(Roles.ROLE_USUARIO));
+        } else if ("PJ".equalsIgnoreCase(usuarioDTO.getTipo())) {
+            usuario.setCnpj(usuarioDTO.getCnpj());
+            usuario.setRoles(Set.of(Roles.ROLE_PROFISSIONAL));
         }
-
-        if (request.getCnpj() != null && !request.getCnpj().trim().isEmpty() &&
-                usuarioRepository.existsByCnpj(request.getCnpj())) {
-            logger.warn("DEBUG: Tentativa de registro com CNPJ já em uso: {}", request.getCnpj());
-            throw new RuntimeException("CNPJ já cadastrado.");
-        }
-
-        // Criação do usuário
-        Usuario usuario = Usuario.builder()
-                .nome(request.getNome())
-                .email(request.getEmail())
-                .telefone(request.getTelefone())
-                .cpf(request.getCpf())
-                .cnpj(request.getCnpj() != null && !request.getCnpj().trim().isEmpty() ? request.getCnpj() : null)
-                .senha(passwordEncoder.encode(request.getSenha()))
-                .agendamentos(Collections.emptyList())
-                .build();
-
-        // Atribuição de roles
-        Set<Roles> assignedRoles = new HashSet<>();
-        if (request.getCnpj() != null && !request.getCnpj().trim().isEmpty()) {
-            assignedRoles.add(Roles.ROLE_PROFISSIONAL);
-            logger.info("DEBUG: Usuário {} registrado como PROFISSIONAL (CNPJ: {})", request.getEmail(),
-                    request.getCnpj());
-        } else {
-            assignedRoles.add(Roles.ROLE_USUARIO);
-            logger.info("DEBUG: Usuário {} registrado como USUARIO (CPF: {})", request.getEmail(), request.getCpf());
-        }
-        usuario.setRoles(assignedRoles);
 
         return usuarioRepository.save(usuario);
     }

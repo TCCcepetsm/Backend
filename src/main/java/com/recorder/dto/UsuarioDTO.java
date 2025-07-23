@@ -1,45 +1,31 @@
 package com.recorder.dto;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import jakarta.validation.constraints.*;
+import java.util.Set;
+import java.util.HashSet;
 
 public class UsuarioDTO {
-    @NotBlank(message = "Nome é obrigatório")
-    @Size(min = 3, max = 100, message = "Nome deve ter entre 3 e 100 caracteres")
+    private Long idUsuario;
     private String nome;
-
-    private String cpf;
-
-    private String cnpj;
-
-    @NotBlank(message = "Telefone é obrigatório")
-    @Pattern(regexp = "\\d{10,11}", message = "Telefone inválido")
-    private String telefone;
-
-    @NotBlank(message = "Email é obrigatório")
-    @Email(message = "Email inválido")
     private String email;
-
-    @NotBlank(message = "Senha é obrigatória")
-    @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
+    private String telefone;
     private String senha;
+    private String tipo; // PF ou PJ
+    private String cpf;
+    private String cnpj;
+    private Set<String> roles;
 
-    @NotBlank(message = "Confirmação de senha é obrigatória")
-    private String confirmarSenha;
-
-    @AssertTrue(message = "Você deve aceitar os termos")
-    private boolean agreeTerms;
-
-    // Getters e Setters
-
-    public String getCnpj() {
-        return cnpj;
+    // Construtor padrão
+    public UsuarioDTO() {
+        this.roles = new HashSet<>(); // Inicializa o Set
     }
 
-    public void setCnpj(String cnpj) {
-        this.cnpj = cnpj;
+    // Getters e Setters
+    public Long getIdUsuario() {
+        return idUsuario;
+    }
+
+    public void setIdUsuario(Long idUsuario) {
+        this.idUsuario = idUsuario;
     }
 
     public String getNome() {
@@ -50,12 +36,12 @@ public class UsuarioDTO {
         this.nome = nome;
     }
 
-    public String getCpf() {
-        return cpf;
+    public String getEmail() {
+        return email;
     }
 
-    public void setCpf(String cpf) {
-        this.cpf = cpf != null ? cpf.replaceAll("\\D", "") : null;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getTelefone() {
@@ -63,15 +49,7 @@ public class UsuarioDTO {
     }
 
     public void setTelefone(String telefone) {
-        this.telefone = telefone != null ? telefone.replaceAll("\\D", "") : null;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email != null ? email.trim() : null;
+        this.telefone = telefone;
     }
 
     public String getSenha() {
@@ -82,39 +60,35 @@ public class UsuarioDTO {
         this.senha = senha;
     }
 
-    public String getConfirmarSenha() {
-        return confirmarSenha;
+    public String getTipo() {
+        return tipo;
     }
 
-    public void setConfirmarSenha(String confirmarSenha) {
-        this.confirmarSenha = confirmarSenha;
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
     }
 
-    public boolean getAgreeTerms() { // Alterado para getAgreeTerms para compatibilidade com @AssertTrue
-        return agreeTerms;
+    public String getCpf() {
+        return cpf;
     }
 
-    public void setAgreeTerms(boolean agreeTerms) {
-        this.agreeTerms = agreeTerms;
+    public void setCpf(String cpf) {
+        this.cpf = cpf;
     }
 
-    private List<String> roles;
-
-    public List<String> getRoles() {
-        if (this.roles == null) {
-            return List.of("ROLE_USUARIO");
-        }
-        return this.roles.stream()
-                .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
-                .collect(Collectors.toList());
+    public String getCnpj() {
+        return cnpj;
     }
 
-    public void setRoles(List<String> roles) {
-        this.roles = roles != null ? roles.stream()
-                .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
-                .collect(Collectors.toList()) : List.of("ROLE_USUARIO");
+    public void setCnpj(String cnpj) {
+        this.cnpj = cnpj;
     }
 
-    // Adicionar validação de senha customizada se necessário, mas fora do DTO
-    // Exemplo: em um validador separado ou no serviço
+    public Set<String> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(Set<String> roles) {
+        this.roles = roles;
+    }
 }
