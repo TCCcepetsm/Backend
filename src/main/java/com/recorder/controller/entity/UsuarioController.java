@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import com.recorder.dto.RegistroDTO;
+import java.util.Collections;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.HashSet;
 
 @RestController
 @RequestMapping("/api/usuario")
@@ -36,55 +41,64 @@ public class UsuarioController {
 	@PostMapping("/registrar")
 	public ResponseEntity<?> registrar(@Valid @RequestBody RegistroDTO registroDTO, BindingResult result) {
 		try {
-			// Validação das anotações Bean Validation
+			// Validação dos campos
 			if (result.hasErrors()) {
-				List<String> errors = result.getFieldErrors().stream()
-						.map(error -> error.getDefaultMessage())
-						.collect(Collectors.toList());
-				logger.warn("Erros de validação: {}", errors);
+				Map<String, String> errors = result.getFieldErrors().stream()
+						.collect(Collectors.toMap(
+								FieldError::getField,
+								FieldError::getDefaultMessage));
 				return ResponseEntity.badRequest().body(errors);
 			}
 
-			// Verificação adicional de senhas
-			if (!registroDTO.getSenha().equals(registroDTO.getConfirmarSenha())) {
-				return ResponseEntity.badRequest().body("As senhas não coincidem");
-			}
-
 			// Converter RegistroDTO para UsuarioDTO
-			UsuarioDTO usuarioDTO = new UsuarioDTO();
-			usuarioDTO.setNome(registroDTO.getNome());
-			usuarioDTO.setEmail(registroDTO.getEmail());
-			usuarioDTO.setTelefone(registroDTO.getTelefone());
-			usuarioDTO.setSenha(passwordEncoder.encode(registroDTO.getSenha()));
-			usuarioDTO.setTipo(registroDTO.getTipo());
+			UsuarioDTO usuarioDTO = convertToUsuarioDTO(registroDTO);
 
-			if ("PF".equalsIgnoreCase(registroDTO.getTipo())) {
-				usuarioDTO.setCpf(registroDTO.getCpf());
-			} else if ("PJ".equalsIgnoreCase(registroDTO.getTipo())) {
-				usuarioDTO.setCnpj(registroDTO.getCnpj());
-			}
-
-			// Usar o UsuarioService para registrar
+			// Processar registro
 			Usuario usuarioSalvo = usuarioService.registrar(usuarioDTO);
 
-			// Retorna resposta de sucesso
-			return ResponseEntity.ok(new UsuarioResponse(
-					usuarioSalvo.getIdUsuario(),
-					usuarioSalvo.getNome(),
-					usuarioSalvo.getEmail(),
-					usuarioSalvo.getTelefone(),
-					usuarioSalvo.getCpf(),
-					usuarioSalvo.getRoles().stream()
-							.map(Roles::name)
-							.collect(Collectors.toList())));
+			// Retornar resposta padronizada
+			return ResponseEntity.ok().body(Map.of(
+					"success", true,
+					"message", "Usuário registrado com sucesso",
+					"data", createUsuarioResponse(usuarioSalvo)));
 
 		} catch (RuntimeException e) {
-			logger.warn("Erro de validação de negócio: {}", e.getMessage());
-			return ResponseEntity.badRequest().body(e.getMessage());
+			return ResponseEntity.badRequest().body(
+					Collections.singletonMap("error", e.getMessage()));
 		} catch (Exception e) {
 			logger.error("Erro interno no registro", e);
-			return ResponseEntity.internalServerError().body("Erro interno no servidor");
+			return ResponseEntity.internalServerError().body(
+					Collections.singletonMap("error", "Erro interno no servidor"));
 		}
+	}
+
+	private UsuarioDTO convertToUsuarioDTO(RegistroDTO registroDTO) {
+		UsuarioDTO usuarioDTO = new UsuarioDTO();
+		usuarioDTO.setNome(registroDTO.getNome());
+		usuarioDTO.setEmail(registroDTO.getEmail());
+		usuarioDTO.setTelefone(registroDTO.getTelefone());
+		usuarioDTO.setSenha(registroDTO.getSenha()); // Será codificada no service
+		usuarioDTO.setTipo(registroDTO.getTipo());
+
+		if ("PF".equalsIgnoreCase(registroDTO.getTipo())) {
+			usuarioDTO.setCpf(registroDTO.getCpf());
+		} else if ("PJ".equalsIgnoreCase(registroDTO.getTipo())) {
+			usuarioDTO.setCnpj(registroDTO.getCnpj());
+		}
+
+		return usuarioDTO;
+	}
+
+	private Map<String, Object> createUsuarioResponse(Usuario usuario) {
+		return Map.of(
+				"idUsuario", usuario.getIdUsuario(),
+				"nome", usuario.getNome(),
+				"email", usuario.getEmail(),
+				"telefone", usuario.getTelefone(),
+				"cpf", usuario.getCpf(),
+				"roles", usuario.getRoles().stream()
+						.map(Enum::name)
+						.collect(Collectors.toList()));
 	}
 
 	@PostMapping("/login")

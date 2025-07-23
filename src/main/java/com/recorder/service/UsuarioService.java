@@ -40,13 +40,16 @@ public class UsuarioService {
         usuario.setTelefone(usuarioDTO.getTelefone());
         usuario.setSenha(passwordEncoder.encode(usuarioDTO.getSenha()));
 
+        // Definir roles baseadas no tipo
+        Set<Roles> roles = new HashSet<>();
         if ("PF".equalsIgnoreCase(usuarioDTO.getTipo())) {
             usuario.setCpf(usuarioDTO.getCpf());
-            usuario.setRoles(Set.of(Roles.ROLE_USUARIO));
+            roles.add(Roles.ROLE_USUARIO);
         } else if ("PJ".equalsIgnoreCase(usuarioDTO.getTipo())) {
             usuario.setCnpj(usuarioDTO.getCnpj());
-            usuario.setRoles(Set.of(Roles.ROLE_PROFISSIONAL));
+            roles.add(Roles.ROLE_PROFISSIONAL);
         }
+        usuario.setRoles(roles);
 
         return usuarioRepository.save(usuario);
     }
