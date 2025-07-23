@@ -40,7 +40,7 @@ public class SecurityConfig {
 						// ESPECÍFICAS PRIMEIRO)
 						// Esta deve vir antes de qualquer .permitAll() que inclua /api/auth/**
 						.requestMatchers("/api/auth/validate-token").authenticated() // EXIGE TOKEN VÁLIDO
-
+						.requestMatchers("/actuator/health").permitAll()
 						// Rotas que EXIGEM autenticação (outras rotas que requerem token, como criar2)
 						.requestMatchers("/api/agendamentos2/criar2").authenticated()
 
@@ -103,4 +103,5 @@ public class SecurityConfig {
 		source.registerCorsConfiguration("/**", config); // Aplica esta configuração CORS a todas as rotas
 		return source;
 	}
+
 }

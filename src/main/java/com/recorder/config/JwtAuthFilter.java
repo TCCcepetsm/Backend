@@ -12,17 +12,23 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
 	private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
+	private static final List<String> PUBLIC_ENDPOINTS = List.of(
+			"/api/auth/",
+			"/api/usuario/registrar",
+			"/actuator/health");
 
 	private final JwtService jwtService;
 	private final CustomUserDetailsService userDetailsService;
@@ -34,94 +40,101 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
 	@Override
 	protected void doFilterInternal(@NonNull HttpServletRequest request,
-									@NonNull HttpServletResponse response,
-									@NonNull FilterChain filterChain)
+			@NonNull HttpServletResponse response,
+			@NonNull FilterChain filterChain)
 			throws ServletException, IOException {
 
 		// Configura headers CORS
-		// Configura headers CORS
-		response.setHeader("Access-Control-Allow-Origin", "https://meu-frontend-tcc.onrender.com");
-		response.setHeader("Access-Control-Allow-Credentials", "true");
-		response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-		response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
-		response.setHeader("Access-Control-Expose-Headers", "Authorization");
+		configureCorsHeaders(response);
 
-
-		// Para requisições OPTIONS, retorne imediatamente
+		// Handle OPTIONS requests first
 		if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
 			response.setStatus(HttpServletResponse.SC_OK);
 			return;
 		}
 
-		// Ignora endpoints públicos (ajuste conforme suas rotas públicas)
-		if (request.getServletPath().startsWith("/api/auth/") ||
-				request.getServletPath().equals("/api/usuario/registrar")) {
-			filterChain.doFilter(request, response);
-			return;
-		}
-
-		final String authHeader = request.getHeader("Authorization");
-
-		// Se não houver token, continue (o SecurityConfig bloqueará endpoints protegidos)
-		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-			logger.warn("Requisição sem token JWT para: {}", request.getRequestURI());
+		// Skip authentication for public endpoints
+		if (isPublicEndpoint(request)) {
 			filterChain.doFilter(request, response);
 			return;
 		}
 
 		try {
-			final String jwt = authHeader.substring(7);
-			final String userEmail = jwtService.extractUsername(jwt);
+			final String authHeader = request.getHeader("Authorization");
 
-			if (userEmail == null) {
-				logger.error("Token JWT não contém email válido");
-				SecurityContextHolder.clearContext();
-				response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token inválido");
+			if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+				logger.warn("Attempt to access protected resource without JWT");
+				response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid Authorization header");
 				return;
 			}
 
-			if (SecurityContextHolder.getContext().getAuthentication() == null) {
-				UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-
-				if (userDetails == null) {
-					logger.error("Usuário não encontrado para o email: {}", userEmail);
-					SecurityContextHolder.clearContext();
-					response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Usuário não encontrado");
-					return;
-				}
-
-				if (!jwtService.isTokenValid(jwt, userDetails)) {
-					logger.error("Token inválido para o usuário: {}", userEmail);
-					SecurityContextHolder.clearContext();
-					response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token inválido");
-					return;
-				}
-
-				String role = jwtService.extractRole(jwt);
-				if (role == null) {
-					logger.error("Token sem role definida para usuário: {}", userEmail);
-					SecurityContextHolder.clearContext();
-					response.sendError(HttpServletResponse.SC_FORBIDDEN, "Token sem permissões definidas");
-					return;
-				}
-
-				UsernamePasswordAuthenticationToken authToken =
-						new UsernamePasswordAuthenticationToken(
-								userDetails,
-								null,
-								Collections.singletonList(new SimpleGrantedAuthority(role)));
-
-				authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-				SecurityContextHolder.getContext().setAuthentication(authToken);
-				logger.debug("Usuário autenticado: {} com role: {}", userEmail, role);
-			}
+			final String jwt = authHeader.substring(7);
+			authenticateToken(jwt, request);
 
 			filterChain.doFilter(request, response);
 
 		} catch (Exception e) {
-			logger.error("Falha na autenticação JWT", e);
-			SecurityContextHolder.clearContext();
-			response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Falha na autenticação: " + e.getMessage());
+			handleAuthenticationError(response, e);
+		}
+	}
+
+	private void configureCorsHeaders(HttpServletResponse response) {
+		response.setHeader("Access-Control-Allow-Origin", "https://meu-frontend-tcc.onrender.com");
+		response.setHeader("Access-Control-Allow-Credentials", "true");
+		response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+		response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+		response.setHeader("Access-Control-Expose-Headers", "Authorization");
+	}
+
+	private boolean isPublicEndpoint(HttpServletRequest request) {
+		return PUBLIC_ENDPOINTS.stream()
+				.anyMatch(path -> request.getServletPath().startsWith(path));
+	}
+
+	private void authenticateToken(String jwt, HttpServletRequest request) {
+		final String userEmail = jwtService.extractUsername(jwt);
+
+		if (userEmail == null || SecurityContextHolder.getContext().getAuthentication() != null) {
+			return;
+		}
+
+		UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+		validateToken(jwt, userDetails);
+
+		String role = jwtService.extractRole(jwt);
+		if (role == null) {
+			throw new SecurityException("Token without valid role");
+		}
+
+		UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+				userDetails,
+				null,
+				Collections.singletonList(new SimpleGrantedAuthority(role)));
+
+		authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+		SecurityContextHolder.getContext().setAuthentication(authToken);
+		logger.debug("Authenticated user: {}", userEmail);
+	}
+
+	private void validateToken(String jwt, UserDetails userDetails) {
+		if (userDetails == null) {
+			throw new UsernameNotFoundException("User not found");
+		}
+		if (!jwtService.isTokenValid(jwt, userDetails)) {
+			throw new SecurityException("Invalid token");
+		}
+	}
+
+	private void handleAuthenticationError(HttpServletResponse response, Exception e) throws IOException {
+		SecurityContextHolder.clearContext();
+		logger.error("Authentication error: {}", e.getMessage());
+
+		if (e instanceof UsernameNotFoundException) {
+			response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "User not found");
+		} else if (e instanceof SecurityException) {
+			response.sendError(HttpServletResponse.SC_FORBIDDEN, e.getMessage());
+		} else {
+			response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed");
 		}
 	}
 }
