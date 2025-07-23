@@ -46,6 +46,7 @@ public class SecurityConfig {
 						.requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
 						.requestMatchers("/api/profissional/**").hasAuthority("ROLE_PROFISSIONAL")
 						.anyRequest().authenticated())
+
 				.sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 				.build();

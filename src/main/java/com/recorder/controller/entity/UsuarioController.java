@@ -30,9 +30,13 @@ import org.springframework.http.HttpStatus;
 public class UsuarioController {
 
 	private final UsuarioService usuarioService;
+	private final UsuarioRepository usuarioRepository; // Adicionado
 
-	public UsuarioController(UsuarioService usuarioService) {
+	// Adicione a injeção do repositório
+	@Autowired
+	public UsuarioController(UsuarioService usuarioService, UsuarioRepository usuarioRepository) {
 		this.usuarioService = usuarioService;
+		this.usuarioRepository = usuarioRepository;
 	}
 
 	@PostMapping("/registrar")
@@ -51,6 +55,12 @@ public class UsuarioController {
 			if (!registroDTO.getSenha().equals(registroDTO.getConfirmarSenha())) {
 				return ResponseEntity.badRequest().body(
 						Collections.singletonMap("error", "As senhas não coincidem"));
+			}
+
+			// Verificar se email já existe
+			if (usuarioRepository.existsByEmail(registroDTO.getEmail())) {
+				return ResponseEntity.badRequest().body(
+						Collections.singletonMap("error", "Email já cadastrado"));
 			}
 
 			// Registrar usuário
@@ -74,6 +84,12 @@ public class UsuarioController {
 			return ResponseEntity.badRequest().body(
 					Collections.singletonMap("error", e.getMessage()));
 		}
+	}
+
+	@GetMapping("/check-email")
+	public ResponseEntity<Boolean> checkEmailExists(@RequestParam String email) {
+		boolean exists = usuarioRepository.existsByEmail(email);
+		return ResponseEntity.ok(exists);
 	}
 
 	private Map<String, Object> createUsuarioResponse(Usuario usuario) {
